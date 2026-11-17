@@ -1,0 +1,1 @@
+ALTER TABLE `perangkat` ADD COLUMN `kapasitas_port` VARCHAR(50) DEFAULT NULL AFTER `ip_address`;

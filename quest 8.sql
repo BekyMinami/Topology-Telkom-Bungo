@@ -1,0 +1,3 @@
+ALTER TABLE `perangkat` 
+ADD COLUMN `kapasitas_port` VARCHAR(50) DEFAULT NULL,
+ADD COLUMN `parent_id` INT DEFAULT NULL;
