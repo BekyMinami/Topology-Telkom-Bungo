@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--red:#cc0000;--bg:#f3f4f6;--card:#fff;--t1:#1f2937;--t2:#4b5563;--t3:#9ca3af;--bd:#e5e7eb;--th:#f9fafb}
 [data-theme=dark]{--red:#ef4444;--bg:#0b0f19;--card:#131d31;--t1:#f3f4f6;--t2:#9ca3af;--t3:#6b7280;--bd:#1e293b;--th:#17233f}
@@ -84,6 +85,14 @@ body.locked #login{display:flex}
 .rbtn{background:var(--red);color:#fff;padding:12px 18px;border:0;border-radius:8px;font-weight:600;cursor:pointer;margin-top:22px;width:100%;font-family:inherit}
 .rres{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:16px;margin-top:20px;font-size:13px;color:var(--t2);display:none}
 .rres div{margin-bottom:6px}
+.rcard+.rcard{margin-top:24px}
+.rcard input[type=file]{padding:8px;cursor:pointer}
+.rcard p{font-size:13px;color:var(--t2);line-height:1.5;margin:0 0 12px}
+.rbtn.blue{background:#2563eb}.rbtn.gray{background:var(--bd);color:var(--t1)}
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;font-weight:500;display:none}
+.alert-ok{background:rgba(16,185,129,.2);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.alert-err{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.abtn.del{background:#fee2e2;color:#b91c1c;border-color:#fecaca;margin-left:4px}
 </style>
 </head>
 <body class="locked">
@@ -110,6 +119,7 @@ body.locked #login{display:flex}
     <div class="lbl">Navigasi Utama</div>
     <button class="link active" id="lnkDash" onclick="showView('dash')">Dashboard &amp; Topologi</button>
     <button class="link" id="lnkRed" onclick="showView('red')">Test / Simulasi Redaman</button>
+    <button class="link" id="lnkTambah" style="display:none" onclick="showView('tambah')">Tambah / Import Data</button>
     <button class="link" onclick="window.print()">Cetak / Print Halaman</button>
     <button class="link" onclick="downloadCSV()">Download Rekap CSV</button>
     <div class="lbl">Sistem</div>
@@ -177,6 +187,44 @@ body.locked #login{display:flex}
       <div class="rres" id="rRes"></div>
     </div>
   </div>
+
+  <div id="viewTambah" style="display:none">
+    <div class="rcard">
+      <h3>Tambah Perangkat / Node Manual</h3>
+      <div class="alert" id="tMsg"></div>
+      <label>Nama Perangkat / ODP / ODC</label>
+      <input id="tNama" placeholder="Contoh: ODP-BNG-FA/01">
+      <label>Jenis Perangkat</label>
+      <select id="tJenis"><option>Router</option><option>Switch</option><option>Access Point</option><option>OLT</option><option>ODC</option><option>ODP</option></select>
+      <label>IP Address (kosongkan jika ODC/ODP pasif)</label>
+      <input id="tIp" placeholder="Contoh: 192.168.1.1 (opsional)">
+      <label>Status (hanya untuk perangkat ber-IP)</label>
+      <select id="tStatus"><option>Normal</option><option>Gangguan</option></select>
+      <label>Kapasitas Port / Splitter</label>
+      <input id="tPort" placeholder="Contoh: 8 Port (Splitter 1:8)">
+      <label>Terhubung Ke (Parent Induk)</label>
+      <select id="tParent"></select>
+      <label>Latitude</label>
+      <input id="tLat" placeholder="Contoh: -1.486200">
+      <label>Longitude</label>
+      <input id="tLng" placeholder="Contoh: 102.108500">
+      <button class="rbtn" onclick="tambahManual()">Simpan Perangkat</button>
+    </div>
+
+    <div class="rcard">
+      <h3>Import Data Massal (CSV / Excel)</h3>
+      <p>Upload file <b>.csv, .xlsx, atau .xls</b>. Baris pertama = header. Urutan kolom: <b>nama, jenis, ip, kapasitas_port, parent_id, latitude, longitude</b>. <code>parent_id</code> diisi nomor urut baris data induk (baris data pertama = 1).</p>
+      <input type="file" id="tFile" accept=".csv,.xlsx,.xls">
+      <button class="rbtn blue" onclick="importFile()">Upload &amp; Import Data</button>
+    </div>
+
+    <div class="rcard">
+      <h3>Simpan Permanen</h3>
+      <p>Perubahan hanya tersimpan di <b>browser ini</b>. Agar tampil untuk semua pengguna: klik <b>Salin Data (JSON)</b>, lalu tempel menggantikan isi <code>let DATA = [ ... ];</code> di <code>index.html</code> dan push ke GitHub.</p>
+      <button class="rbtn" onclick="salinData()">Salin Data (JSON)</button>
+      <button class="rbtn gray" onclick="resetData()">Reset ke Data Bawaan</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -186,7 +234,7 @@ body.locked #login{display:flex}
    status: 'Normal' / 'Gangguan' (hanya dipakai untuk perangkat ber-IP;
    perangkat pasif mengikuti status parent-nya).
    ============================================================ */
-const DATA = [
+let DATA = [
   {id:1,nama:"Router Core Bungo",jenis:"Router",ip:"10.10.0.1",port:"24",parent:null,lat:-1.4862,lng:102.1085,status:"Normal"},
   {id:2,nama:"OLT Muara Bungo",jenis:"OLT",ip:"10.10.1.1",port:"16",parent:1,lat:-1.4900,lng:102.1120,status:"Normal"},
   {id:3,nama:"OLT Rimbo Tengah",jenis:"OLT",ip:"10.10.1.2",port:"16",parent:1,lat:-1.4700,lng:102.0900,status:"Gangguan"},
@@ -197,8 +245,9 @@ const DATA = [
   {id:8,nama:"ODP Rimbo 01",jenis:"ODP",ip:"",port:"8",parent:5,lat:-1.4630,lng:102.0830,status:""}
 ];
 
+try{const sv=localStorage.getItem("nms_data"); if(sv) DATA=JSON.parse(sv);}catch(e){}
 const WARNA = {Router:'#3b82f6',Switch:'#06b6d4','Access Point':'#ec4899',OLT:'#8b5cf6',ODC:'#f59e0b',ODP:'#b91010'};
-const byId = Object.fromEntries(DATA.map(d=>[d.id,d]));
+let byId = {};
 
 // Status rekursif: ber-IP pakai status sendiri, pasif ikut parent
 function getStatus(d){
@@ -210,12 +259,14 @@ const count = j => DATA.filter(d=>d.jenis===j).length;
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Statistik
-const odpDown = DATA.filter(d=>d.jenis==='ODP'&&getStatus(d)==='Gangguan').length;
-document.getElementById('sNode').innerHTML = DATA.length+' <span>Node</span>';
-document.getElementById('sPasif').innerHTML = (count('ODC')+count('ODP'))+' <span>ODC / ODP</span>';
-document.getElementById('sOlt').innerHTML = count('OLT')+' <span style="color:#10b981">Aktif</span>';
-document.getElementById('sDown').style.color = odpDown>0?'#ef4444':'#10b981';
-document.getElementById('sDown').innerHTML = odpDown+' <span>ODP</span>';
+function updateStats(){
+  const odpDown = DATA.filter(d=>d.jenis==='ODP'&&getStatus(d)==='Gangguan').length;
+  document.getElementById('sNode').innerHTML = DATA.length+' <span>Node</span>';
+  document.getElementById('sPasif').innerHTML = (count('ODC')+count('ODP'))+' <span>ODC / ODP</span>';
+  document.getElementById('sOlt').innerHTML = count('OLT')+' <span style="color:#10b981">Aktif</span>';
+  document.getElementById('sDown').style.color = odpDown>0?'#ef4444':'#10b981';
+  document.getElementById('sDown').innerHTML = odpDown+' <span>ODP</span>';
+}
 
 // Tema & sidebar
 if(localStorage.getItem('theme')==='dark'){
@@ -236,33 +287,48 @@ function toggleSidebar(){
 // Peta
 const map = L.map('map').setView([-1.4862,102.1085],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-const markers = {};
-DATA.forEach(d=>{
-  if(d.parent && byId[d.parent]){
-    const p = byId[d.parent], st = getStatus(d);
-    L.polyline([[d.lat,d.lng],[p.lat,p.lng]],{color:st==='Normal'?'#3b82f6':'#ef4444',weight:3.5,opacity:.9,dashArray:'5, 5'})
-      .addTo(map).bindPopup('<b>Status Jalur: '+st+'</b>');
-  }
-});
-DATA.forEach(d=>{
-  const st = getStatus(d);
-  markers[d.id] = L.circleMarker([d.lat,d.lng],{
-    radius:d.jenis==='ODP'?6:9,
-    fillColor: st==='Gangguan'?'#ef4444':(WARNA[d.jenis]||'#6b7280'),
-    color:'#fff',weight:2,fillOpacity:1
-  }).addTo(map).bindPopup(
-    '<b>'+esc(d.nama)+'</b><br>Jenis: <b>'+esc(d.jenis)+'</b><br>'+
-    (d.ip?'IP: '+esc(d.ip)+'<br>':'')+
-    'Status: <b style="color:'+(st==='Normal'?'#10b981':'#ef4444')+'">'+st+'</b>'
-  );
-});
+let markers = {};
+const layer = L.layerGroup().addTo(map);
+function drawMap(){
+  layer.clearLayers(); markers = {};
+  DATA.forEach(d=>{
+    if(d.parent && byId[d.parent]){
+      const p = byId[d.parent], st = getStatus(d);
+      L.polyline([[d.lat,d.lng],[p.lat,p.lng]],{color:st==='Normal'?'#3b82f6':'#ef4444',weight:3.5,opacity:.9,dashArray:'5, 5'})
+        .addTo(layer).bindPopup('<b>Status Jalur: '+st+'</b>');
+    }
+  });
+  DATA.forEach(d=>{
+    const st = getStatus(d);
+    markers[d.id] = L.circleMarker([d.lat,d.lng],{
+      radius:d.jenis==='ODP'?6:9,
+      fillColor: st==='Gangguan'?'#ef4444':(WARNA[d.jenis]||'#6b7280'),
+      color:'#fff',weight:2,fillOpacity:1
+    }).addTo(layer).bindPopup(
+      '<b>'+esc(d.nama)+'</b><br>Jenis: <b>'+esc(d.jenis)+'</b><br>'+
+      (d.ip?'IP: '+esc(d.ip)+'<br>':'')+
+      'Status: <b style="color:'+(st==='Normal'?'#10b981':'#ef4444')+'">'+st+'</b>'
+    );
+  });
+}
 
-// Chart
-new Chart(document.getElementById('chart'),{
-  type:'doughnut',
-  data:{labels:['Router','OLT','ODC','ODP'],datasets:[{data:[count('Router'),count('OLT'),count('ODC'),count('ODP')],backgroundColor:['#3b82f6','#8b5cf6','#f59e0b','#b91010'],borderWidth:0}]},
-  options:{responsive:true,cutout:'75%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}
-});
+let chartObj;
+function drawChart(){
+  const vals = [count('Router'),count('OLT'),count('ODC'),count('ODP')];
+  if(chartObj){chartObj.data.datasets[0].data = vals; chartObj.update(); return;}
+  chartObj = new Chart(document.getElementById('chart'),{
+    type:'doughnut',
+    data:{labels:['Router','OLT','ODC','ODP'],datasets:[{data:vals,backgroundColor:['#3b82f6','#8b5cf6','#f59e0b','#b91010'],borderWidth:0}]},
+    options:{responsive:true,cutout:'75%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}
+  });
+}
+
+function rebuild(){
+  byId = Object.fromEntries(DATA.map(d=>[d.id,d]));
+  updateStats(); drawMap(); drawChart(); render();
+  document.getElementById('tParent').innerHTML = '<option value="">-- Pilih Induk (Parent) --</option>'+
+    DATA.map(d=>'<option value="'+d.id+'">'+esc(d.nama)+' ('+esc(d.jenis)+')</option>').join('');
+}
 
 // Tabel + filter
 function render(){
@@ -276,7 +342,8 @@ function render(){
     html += '<tr><td>'+(no++)+'</td><td><b>'+esc(d.nama)+'</b></td><td>'+esc(d.jenis)+'</td><td>'+
       (d.ip?esc(d.ip):'<i style="color:var(--t3)">- (Pasif)</i>')+'</td><td>'+(d.port?esc(d.port):'-')+'</td><td>'+
       '<span class="badge '+(st==='Normal'?'ok':'down')+'">'+st+'</span></td>'+
-      '<td><button class="abtn" onclick="fokus('+d.id+')">Lihat di Peta</button></td></tr>';
+      '<td><button class="abtn" onclick="fokus('+d.id+')">Lihat di Peta</button>'+
+      (isAdmin()?'<button class="abtn del" onclick="hapus('+d.id+')">Hapus</button>':'')+'</td></tr>';
   });
   document.getElementById('tb').innerHTML = html || '<tr><td colspan="7" style="text-align:center">Tidak ada data</td></tr>';
 }
@@ -296,15 +363,78 @@ function downloadCSV(){
 }
 
 
-// Pindah tampilan Dashboard / Redaman
+// Admin & penyimpanan
+let currentUser = null;
+const isAdmin = () => currentUser && currentUser.role==='Admin';
+const save = () => { try{localStorage.setItem('nms_data',JSON.stringify(DATA));}catch(e){} };
+function pesan(t,ok){
+  const m = document.getElementById('tMsg');
+  m.className = 'alert '+(ok?'alert-ok':'alert-err');
+  m.textContent = t; m.style.display = 'block';
+  m.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function tambahManual(){
+  if(!isAdmin()) return;
+  const g = id => document.getElementById(id).value.trim();
+  const nama = g('tNama'), lat = parseFloat(g('tLat')), lng = parseFloat(g('tLng'));
+  if(!nama || isNaN(lat) || isNaN(lng)) return pesan('Nama, latitude, dan longitude wajib diisi dengan benar.',false);
+  const id = DATA.reduce((m,d)=>Math.max(m,d.id),0)+1;
+  DATA.push({id,nama,jenis:g('tJenis'),ip:g('tIp'),port:g('tPort'),parent:g('tParent')?parseInt(g('tParent')):null,lat,lng,status:g('tIp')?g('tStatus'):''});
+  save(); rebuild();
+  ['tNama','tIp','tPort','tLat','tLng'].forEach(i=>document.getElementById(i).value='');
+  pesan('Perangkat berhasil ditambahkan!',true);
+}
+function importFile(){
+  if(!isAdmin()) return;
+  const f = document.getElementById('tFile').files[0];
+  if(!f) return pesan('Pilih file CSV atau Excel dulu.',false);
+  if(!confirm('PERHATIAN: Semua data perangkat lama akan DIHAPUS dan diganti dengan isi file. Lanjutkan?')) return;
+  const rd = new FileReader();
+  rd.onload = e => {
+    try{
+      const wb = XLSX.read(e.target.result,{type:'array'});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      rows.shift();
+      const out = []; let gagal = 0;
+      rows.forEach(r=>{
+        if(!r.some(c=>String(c).trim()!=='')) return;
+        const lat = parseFloat(r[5]), lng = parseFloat(r[6]);
+        if(r.length<7 || !String(r[0]).trim() || isNaN(lat) || isNaN(lng)){gagal++;return;}
+        out.push({id:out.length+1,nama:String(r[0]).trim(),jenis:String(r[1]).trim(),ip:String(r[2]).trim(),port:String(r[3]).trim(),parent:parseInt(r[4])||null,lat,lng,status:String(r[2]).trim()?'Normal':''});
+      });
+      out.forEach(d=>{ if(d.parent>out.length || d.parent===d.id) d.parent = null; });
+      DATA = out; save(); rebuild();
+      pesan('Berhasil import '+out.length+' data perangkat!'+(gagal?' (Gagal: '+gagal+')':''),true);
+    }catch(err){ pesan('Gagal membaca file. Pastikan formatnya benar.',false); }
+  };
+  rd.readAsArrayBuffer(f);
+}
+function hapus(id){
+  if(!isAdmin() || !confirm('Yakin ingin menghapus perangkat ini?')) return;
+  DATA = DATA.filter(d=>d.id!==id);
+  DATA.forEach(d=>{ if(d.parent===id) d.parent = null; });
+  save(); rebuild();
+}
+function salinData(){
+  const txt = JSON.stringify(DATA,null,1);
+  navigator.clipboard.writeText(txt).then(()=>pesan('Data JSON berhasil disalin. Tempel ke index.html lalu push ke GitHub.',true))
+    .catch(()=>pesan('Gagal menyalin otomatis. Izinkan akses clipboard di browser.',false));
+}
+function resetData(){
+  if(!isAdmin() || !confirm('Hapus perubahan di browser ini dan kembali ke data bawaan index.html?')) return;
+  localStorage.removeItem('nms_data'); location.reload();
+}
+
+// Pindah tampilan
 function showView(v){
-  const dash = v==='dash';
-  document.getElementById('viewDash').style.display = dash?'':'none';
-  document.getElementById('viewRed').style.display = dash?'none':'';
-  document.getElementById('lnkDash').classList.toggle('active',dash);
-  document.getElementById('lnkRed').classList.toggle('active',!dash);
-  document.getElementById('pageTitle').textContent = dash?'Monitoring Jaringan Akses & FTTH':'Test / Simulasi Redaman';
-  if(dash) setTimeout(()=>map.invalidateSize(),100);
+  const V = {dash:['viewDash','lnkDash','Monitoring Jaringan Akses & FTTH'],red:['viewRed','lnkRed','Test / Simulasi Redaman'],tambah:['viewTambah','lnkTambah','Kelola Perangkat']};
+  if(v==='tambah' && !isAdmin()) v = 'dash';
+  Object.keys(V).forEach(k=>{
+    document.getElementById(V[k][0]).style.display = k===v?'':'none';
+    document.getElementById(V[k][1]).classList.toggle('active',k===v);
+  });
+  document.getElementById('pageTitle').textContent = V[v][2];
+  if(v==='dash') setTimeout(()=>map.invalidateSize(),100);
   if(document.body.classList.contains('open')) toggleSidebar();
 }
 
@@ -353,7 +483,10 @@ async function sha(t){
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 function unlock(user){
+  currentUser = user;
   document.body.classList.remove('locked');
+  document.getElementById('lnkTambah').style.display = user.role==='Admin'?'':'none';
+  render();
   document.getElementById('whoami').textContent = user.u+' ('+user.role+')';
   setTimeout(()=>map.invalidateSize(),100);
 }
@@ -373,7 +506,7 @@ function doLogout(){
 }
 const saved = USERS.find(x=>x.u===sessionStorage.getItem('auth'));
 if(saved) unlock(saved);
-render();
+rebuild();
 </script>
 </body>
 </html>
