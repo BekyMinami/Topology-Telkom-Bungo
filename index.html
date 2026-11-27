@@ -226,25 +226,56 @@ body.locked #login{display:flex}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="data_dummy.js" onerror="void 0"></script>
-<script src="data_dummy_2.js" onerror="void 0"></script>
 <script>
 /* ============================================================
-   DATA PERANGKAT. Isi array DATA dengan data asli (hasil export_json.php),
-   atau import lewat menu Tambah / Import Data.
-   Data dummy sementara dimuat dari file terpisah: data_dummy.js / data_dummy_2.js
+   DATA PERANGKAT (SAMPLE / DUMMY, wilayah Kota Jambi).
+   Ganti isi array DATA dengan data asli, atau import lewat menu
+   Tambah / Import Data (format CSV: lihat data_dummy_2.csv).
    status: 'Normal' / 'Gangguan' (hanya dipakai untuk perangkat ber-IP;
    perangkat pasif mengikuti status parent-nya).
    ============================================================ */
-let DATA = [];
+let DATA = [
+  {"id":1,"nama":"Router Core Jambi Utama","jenis":"Router","ip":"172.16.0.1","port":"32 Port","parent":null,"lat":-1.61,"lng":103.613,"status":"Normal"},
+  {"id":2,"nama":"Router Agregasi Utara","jenis":"Router","ip":"172.16.0.2","port":"16 Port","parent":1,"lat":-1.59,"lng":103.615,"status":"Gangguan"},
+  {"id":3,"nama":"Router Agregasi Selatan","jenis":"Router","ip":"172.16.0.3","port":"16 Port","parent":1,"lat":-1.63,"lng":103.615,"status":"Normal"},
+  {"id":4,"nama":"Switch Metro Kantor Witel","jenis":"Switch","ip":"172.16.1.1","port":"24 Port","parent":1,"lat":-1.6115,"lng":103.611,"status":"Gangguan"},
+  {"id":5,"nama":"Switch Metro Utara","jenis":"Switch","ip":"172.16.1.2","port":"24 Port","parent":2,"lat":-1.593,"lng":103.62,"status":"Normal"},
+  {"id":6,"nama":"Access Point Wifi.id Terminal","jenis":"Access Point","ip":"172.16.2.1","port":"1 Port","parent":4,"lat":-1.612,"lng":103.6095,"status":"Normal"},
+  {"id":7,"nama":"Access Point Wifi.id Pasar","jenis":"Access Point","ip":"172.16.2.2","port":"1 Port","parent":5,"lat":-1.5945,"lng":103.622,"status":"Gangguan"},
+  {"id":8,"nama":"OLT Telanaipura","jenis":"OLT","ip":"172.16.3.1","port":"16 PON","parent":2,"lat":-1.585,"lng":103.59,"status":"Normal"},
+  {"id":9,"nama":"ODC-TLP-FA","jenis":"ODC","ip":"","port":"144 Core","parent":8,"lat":-1.581,"lng":103.593,"status":""},
+  {"id":10,"nama":"ODP-TLP-FA/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":9,"lat":-1.5788,"lng":103.5945,"status":""},
+  {"id":11,"nama":"ODP-TLP-FA/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":9,"lat":-1.5828,"lng":103.5952,"status":""},
+  {"id":12,"nama":"ODC-TLP-FB","jenis":"ODC","ip":"","port":"96 Core","parent":8,"lat":-1.588,"lng":103.586,"status":""},
+  {"id":13,"nama":"ODP-TLP-FB/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":12,"lat":-1.5858,"lng":103.5875,"status":""},
+  {"id":14,"nama":"ODP-TLP-FB/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":12,"lat":-1.5898,"lng":103.5882,"status":""},
+  {"id":15,"nama":"OLT Kota Baru","jenis":"OLT","ip":"172.16.3.2","port":"16 PON","parent":2,"lat":-1.595,"lng":103.64,"status":"Gangguan"},
+  {"id":16,"nama":"ODC-KTB-FA","jenis":"ODC","ip":"","port":"144 Core","parent":15,"lat":-1.591,"lng":103.643,"status":""},
+  {"id":17,"nama":"ODP-KTB-FA/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":16,"lat":-1.5888,"lng":103.6445,"status":""},
+  {"id":18,"nama":"ODP-KTB-FA/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":16,"lat":-1.5928,"lng":103.6452,"status":""},
+  {"id":19,"nama":"ODC-KTB-FB","jenis":"ODC","ip":"","port":"96 Core","parent":15,"lat":-1.598,"lng":103.636,"status":""},
+  {"id":20,"nama":"ODP-KTB-FB/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":19,"lat":-1.5958,"lng":103.6375,"status":""},
+  {"id":21,"nama":"ODP-KTB-FB/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":19,"lat":-1.5998,"lng":103.6382,"status":""},
+  {"id":22,"nama":"OLT Jelutung","jenis":"OLT","ip":"172.16.3.3","port":"16 PON","parent":3,"lat":-1.64,"lng":103.635,"status":"Normal"},
+  {"id":23,"nama":"ODC-JLT-FA","jenis":"ODC","ip":"","port":"144 Core","parent":22,"lat":-1.636,"lng":103.638,"status":""},
+  {"id":24,"nama":"ODP-JLT-FA/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":23,"lat":-1.6338,"lng":103.6395,"status":""},
+  {"id":25,"nama":"ODP-JLT-FA/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":23,"lat":-1.6378,"lng":103.6402,"status":""},
+  {"id":26,"nama":"ODC-JLT-FB","jenis":"ODC","ip":"","port":"96 Core","parent":22,"lat":-1.643,"lng":103.631,"status":""},
+  {"id":27,"nama":"ODP-JLT-FB/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":26,"lat":-1.6408,"lng":103.6325,"status":""},
+  {"id":28,"nama":"ODP-JLT-FB/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":26,"lat":-1.6448,"lng":103.6332,"status":""},
+  {"id":29,"nama":"OLT Alam Barajo","jenis":"OLT","ip":"172.16.3.4","port":"16 PON","parent":3,"lat":-1.645,"lng":103.595,"status":"Gangguan"},
+  {"id":30,"nama":"ODC-ABJ-FA","jenis":"ODC","ip":"","port":"144 Core","parent":29,"lat":-1.641,"lng":103.598,"status":""},
+  {"id":31,"nama":"ODP-ABJ-FA/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":30,"lat":-1.6388,"lng":103.5995,"status":""},
+  {"id":32,"nama":"ODP-ABJ-FA/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":30,"lat":-1.6428,"lng":103.6002,"status":""},
+  {"id":33,"nama":"ODC-ABJ-FB","jenis":"ODC","ip":"","port":"96 Core","parent":29,"lat":-1.648,"lng":103.591,"status":""},
+  {"id":34,"nama":"ODP-ABJ-FB/01","jenis":"ODP","ip":"","port":"8 Port (Splitter 1:8)","parent":33,"lat":-1.6458,"lng":103.5925,"status":""},
+  {"id":35,"nama":"ODP-ABJ-FB/02","jenis":"ODP","ip":"","port":"16 Port (Splitter 1:16)","parent":33,"lat":-1.6498,"lng":103.5932,"status":""}
+];
 
-// Prioritas data: localStorage (hasil tambah/import) > data_dummy.js > kosong
-let SIMULASI_STATUS = false; // true hanya jika memakai data dummy: status ber-IP diacak
-const PILIH_DUMMY = 2; // 1 = data_dummy.js, 2 = data_dummy_2.js
-const d1 = typeof DATA_DUMMY!=='undefined' ? DATA_DUMMY : null;
-const d2 = typeof DATA_DUMMY_2!=='undefined' ? DATA_DUMMY_2 : null;
-const dummySet = PILIH_DUMMY===2 ? (d2||d1) : (d1||d2);
-if(dummySet){ DATA = dummySet; SIMULASI_STATUS = true; }
+// true = status perangkat ber-IP diacak (cocok untuk data sample).
+// Ubah ke false jika memakai data asli, agar status mengikuti field "status".
+let SIMULASI_STATUS = true;
+// Data hasil tambah/import (tersimpan di browser) menggantikan data sample
 try{const sv=localStorage.getItem("nms_data"); if(sv){ DATA=JSON.parse(sv); SIMULASI_STATUS = false; }}catch(e){}
 const WARNA = {Router:'#3b82f6',Switch:'#06b6d4','Access Point':'#ec4899',OLT:'#8b5cf6',ODC:'#f59e0b',ODP:'#b91010'};
 let byId = {};
