@@ -40,8 +40,14 @@ if (isset($_POST['tambah_manual'])) {
 // 2. Logika Import File CSV Massal
 if (isset($_POST['import_csv'])) {
     if (isset($_FILES['file_csv']['name']) && $_FILES['file_csv']['error'] === 0) {
-        $file_tmp = $_FILES['file_csv']['tmp_name'];
+                $file_tmp = $_FILES['file_csv']['tmp_name'];
         $handle = fopen($file_tmp, "r");
+
+        // Hapus semua data lama sebelum import (ID dimulai lagi dari 1)
+        mysqli_query($koneksi, "SET FOREIGN_KEY_CHECKS = 0");
+        mysqli_query($koneksi, "TRUNCATE TABLE log_gangguan");
+        mysqli_query($koneksi, "TRUNCATE TABLE perangkat");
+        mysqli_query($koneksi, "SET FOREIGN_KEY_CHECKS = 1");
         
         // Lewati baris pertama (header)
         fgetcsv($handle, 1000, ",");
@@ -343,7 +349,10 @@ if (isset($_POST['import_csv'])) {
             <form action="" method="POST" enctype="multipart/form-data">
                 <label>Pilih File CSV:</label>
                 <input type="file" name="file_csv" accept=".csv" required>
-                <button type="submit" name="import_csv" class="btn-submit btn-import">Upload & Import Data</button>
+                <button type="submit" name="import_csv" class="btn-submit btn-import"
+        onclick="return confirm('PERHATIAN: Semua data perangkat dan log gangguan yang lama akan DIHAPUS dan diganti dengan isi CSV. Lanjutkan?');">
+    Upload & Import Data
+</button>
             </form>
         </div>
     </div>

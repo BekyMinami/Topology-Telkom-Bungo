@@ -362,18 +362,18 @@ if($q_all){
         </div>
         <div class="sidebar-menu">
             <div class="menu-label">Navigasi Utama</div>
-            <a href="index.php" class="sidebar-link active">📊 Dashboard & Topologi</a>
-            <a href="redaman.php" class="sidebar-link">⚡ Test / Simulasi Redaman</a>
+            <a href="index.php" class="sidebar-link active">Dashboard & Topologi</a>
+            <a href="redaman.php" class="sidebar-link">Test / Simulasi Redaman</a>
             
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
-                <a href="tambah.php" class="sidebar-link">➕ Tambah / Import Data</a>
+                <a href="tambah.php" class="sidebar-link">Tambah / Import Data</a>
             <?php endif; ?>
             
-            <a href="export.php" class="sidebar-link">📥 Download Rekap Excel</a>
-            <button onclick="window.print()" class="sidebar-link">🖨️ Cetak / Print Halaman</button>
+            <a href="export.php" class="sidebar-link">Download Rekap Excel</a>
+            <button onclick="window.print()" class="sidebar-link">Cetak / Print Halaman</button>
             
             <div class="menu-label">Sistem</div>
-            <a href="logout.php" class="sidebar-link" style="color: #f87171;">🚪 Keluar Sesi</a>
+            <a href="logout.php" class="sidebar-link" style="color: #f87171;">Keluar Sesi</a>
         </div>
         <div class="sidebar-footer">
             <div class="user-info" style="font-size: 12px; color: #94a3b8; font-weight: 400;">
@@ -392,7 +392,7 @@ if($q_all){
                 </div>
             </div>
             <div class="nav-right">
-                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">🌙 Mode Gelap</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">Mode Gelap</button>
                 <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; display: none; @media(min-width:640px){display:block;}">
                     PT Telkom Indonesia
                 </div>
@@ -498,7 +498,7 @@ if($q_all){
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggleBtn').innerHTML = '☀️ Mode Terang';
+            document.getElementById('themeToggleBtn').innerHTML = 'Mode Terang';
         }
 
         function toggleTheme() {
@@ -506,11 +506,11 @@ if($q_all){
             if (theme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'light');
                 localStorage.setItem('theme', 'light');
-                document.getElementById('themeToggleBtn').innerHTML = '🌙 Mode Gelap';
+                document.getElementById('themeToggleBtn').innerHTML = 'Mode Gelap';
             } else {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
-                document.getElementById('themeToggleBtn').innerHTML = '☀️ Mode Terang';
+                document.getElementById('themeToggleBtn').innerHTML = 'Mode Terang';
             }
         }
 
@@ -573,7 +573,7 @@ if($q_all){
                             $warna = '#f59e0b'; // Kuning / Orange
                             break;
                         case 'ODP':
-                            $warna = '#10b981'; // Hijau
+                            $warna = '#b91010'; // Hijau
                             break;
                         default:
                             $warna = '#6b7280'; // Abu-abu
@@ -593,7 +593,7 @@ if($q_all){
                 "Jenis: <b><?= $p['jenis']; ?></b><br>" +
                 "Status: <b style='color: <?= ($status_marker == 'Normal') ? '#10b981' : '#ef4444'; ?>'><?= $status_marker; ?></b><br>" +
                 "<hr style='margin:5px 0; border:0; border-top:1px solid #e5e7eb;'>" +
-                "<a href='detail.php?id=<?= $p['id']; ?>' target='_blank' style='color:#3b82f6; font-weight:600; text-decoration:none;'>🔍 Lihat Detail</a>"
+                "<a href='detail.php?id=<?= $p['id']; ?>' target='_blank' style='color:#3b82f6; font-weight:600; text-decoration:none;'>Lihat Detail</a>"
             );
         <?php 
             endwhile; 
@@ -607,7 +607,7 @@ if($q_all){
                 labels: ['Router', 'OLT', 'ODC', 'ODP'],
                 datasets: [{
                     data: [<?= $jml_router; ?>, <?= $jml_olt; ?>, <?= $jml_odc; ?>, <?= $jml_odp; ?>],
-                    backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'],
+                    backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#b91010'],
                     borderWidth: 0
                 }]
             },
