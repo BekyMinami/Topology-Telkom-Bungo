@@ -16,7 +16,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .sidebar{width:265px;background:rgba(17,24,39,.95);color:#fff;position:fixed;inset:0 auto 0 0;z-index:1100;display:flex;flex-direction:column;transition:transform .25s}
 body.collapsed .sidebar{transform:translateX(-100%)}
 body.collapsed .main{margin-left:0;max-width:100%}
-.sb-head{padding:20px;background:rgba(11,15,25,.9);border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-head{padding:20px;background:rgba(11,15,25,.9);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px}
+.sb-head img{width:28px;height:auto;object-fit:contain}
 .sb-head h2{margin:0;font-size:14px;font-weight:500;color:#cbd5e1}
 .sb-head h2 span{color:var(--red);font-weight:700}
 .sb-head small{font-size:10px;color:#94a3b8}
@@ -112,8 +113,11 @@ body.locked #login{display:flex}
 
 <div class="sidebar">
   <div class="sb-head">
-    <h2>TELKOM <span>NMS</span></h2>
-    <small>Witel Jambi / Bungo</small>
+    <img src="logo_telkom.png" alt="Logo Telkom" onerror="this.style.display='none'">
+    <div>
+      <h2>TELKOM <span>NMS</span></h2>
+      <small>Witel Jambi / Bungo</small>
+    </div>
   </div>
   <div class="sb-menu">
     <div class="lbl">Navigasi Utama</div>
