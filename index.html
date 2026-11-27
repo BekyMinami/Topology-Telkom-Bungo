@@ -76,6 +76,14 @@ body.locked #login{display:flex}
 .lcard input{width:100%;padding:10px;margin:6px 0 12px;border:1px solid var(--bd);border-radius:4px;background:var(--card);color:var(--t1);font-family:inherit}
 .lcard button{width:100%;background:var(--red);color:#fff;padding:10px;border:0;border-radius:4px;font-weight:700;cursor:pointer;font-family:inherit}
 .lerr{color:#ef4444;font-size:13px;text-align:center;margin:0 0 10px;min-height:16px}
+.rcard{max-width:650px;margin:0 auto;background:var(--card);padding:28px 32px;border-radius:12px;border:1px solid var(--bd)}
+.rcard h3{font-size:17px;border-left:4px solid var(--red);padding-left:10px;margin:0 0 20px}
+.rcard label{display:block;margin-top:14px;font-weight:600;font-size:12px;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
+.rcard input,.rcard select{width:100%;padding:10px 14px;margin-top:6px;border:1px solid var(--bd);border-radius:8px;font-size:13px;color:var(--t1);background:var(--card);font-family:inherit;outline:0}
+.rcard input:focus,.rcard select:focus{border-color:var(--red)}
+.rbtn{background:var(--red);color:#fff;padding:12px 18px;border:0;border-radius:8px;font-weight:600;cursor:pointer;margin-top:22px;width:100%;font-family:inherit}
+.rres{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:16px;margin-top:20px;font-size:13px;color:var(--t2);display:none}
+.rres div{margin-bottom:6px}
 </style>
 </head>
 <body class="locked">
@@ -100,7 +108,8 @@ body.locked #login{display:flex}
   </div>
   <div class="sb-menu">
     <div class="lbl">Navigasi Utama</div>
-    <a href="index.html" class="link active">Dashboard &amp; Topologi</a>
+    <button class="link active" id="lnkDash" onclick="showView('dash')">Dashboard &amp; Topologi</button>
+    <button class="link" id="lnkRed" onclick="showView('red')">Test / Simulasi Redaman</button>
     <button class="link" onclick="window.print()">Cetak / Print Halaman</button>
     <button class="link" onclick="downloadCSV()">Download Rekap CSV</button>
     <div class="lbl">Sistem</div>
@@ -113,11 +122,12 @@ body.locked #login{display:flex}
   <div class="nav">
     <div>
       <button class="btn" onclick="toggleSidebar()">☰</button>
-      <h3>Monitoring Jaringan Akses &amp; FTTH</h3>
+      <h3 id="pageTitle">Monitoring Jaringan Akses &amp; FTTH</h3>
     </div>
     <button class="btn" id="themeBtn" onclick="toggleTheme()">Mode Gelap</button>
   </div>
 
+  <div id="viewDash">
   <div class="cards">
     <div class="stat"><small>Total Infrastruktur</small><h3 id="sNode"></h3></div>
     <div class="stat"><small>Total Titik Pasif</small><h3 id="sPasif"></h3></div>
@@ -147,6 +157,26 @@ body.locked #login{display:flex}
     </table>
   </div>
   <p class="note">Data bersifat snapshot statis (tanpa ping real-time).</p>
+  </div>
+
+  <div id="viewRed" style="display:none">
+    <div class="rcard">
+      <h3>Kalkulator Simulasi Redaman Fiber Optik (Link Budget)</h3>
+      <label>Panjang Kabel (Kilometer)</label>
+      <input type="number" step="0.01" min="0" id="rKm" placeholder="Contoh: 2.5 (2.5 km / 2500 meter)">
+      <label>Panjang Gelombang (Wavelength)</label>
+      <select id="rWl">
+        <option value="1310">1310 nm (Standar Akses)</option>
+        <option value="1550">1550 nm (Standar Distribusi/Long Haul)</option>
+      </select>
+      <label>Jumlah Titik Sambungan (Splice)</label>
+      <input type="number" min="0" id="rSp" value="2">
+      <label>Jumlah Konektor / Adaptor</label>
+      <input type="number" min="0" id="rKo" value="2">
+      <button class="rbtn" onclick="hitungRedaman()">Hitung Estimasi Redaman</button>
+      <div class="rres" id="rRes"></div>
+    </div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -263,6 +293,51 @@ function downloadCSV(){
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download = 'rekap-perangkat.csv';
   a.click();
+}
+
+
+// Pindah tampilan Dashboard / Redaman
+function showView(v){
+  const dash = v==='dash';
+  document.getElementById('viewDash').style.display = dash?'':'none';
+  document.getElementById('viewRed').style.display = dash?'none':'';
+  document.getElementById('lnkDash').classList.toggle('active',dash);
+  document.getElementById('lnkRed').classList.toggle('active',!dash);
+  document.getElementById('pageTitle').textContent = dash?'Monitoring Jaringan Akses & FTTH':'Test / Simulasi Redaman';
+  if(dash) setTimeout(()=>map.invalidateSize(),100);
+  if(document.body.classList.contains('open')) toggleSidebar();
+}
+
+// Kalkulator redaman (ITU-T G.652): 1310nm=0.35 dB/km, 1550nm=0.22 dB/km, splice 0.1 dB, konektor 0.5 dB
+function hitungRedaman(){
+  const km = parseFloat(document.getElementById('rKm').value);
+  const wl = parseInt(document.getElementById('rWl').value);
+  const sp = parseInt(document.getElementById('rSp').value)||0;
+  const ko = parseInt(document.getElementById('rKo').value)||0;
+  const box = document.getElementById('rRes');
+  box.style.display = 'block';
+  if(isNaN(km) || km<0 || sp<0 || ko<0){
+    box.innerHTML = '<span style="color:#ef4444">Isi panjang kabel dengan angka yang valid.</span>';
+    return;
+  }
+  const r2 = n => Math.round(n*100)/100;
+  const kabel = km*(wl===1310?0.35:0.22);
+  const sambungan = sp*0.1;
+  const konektor = ko*0.5;
+  const total = r2(kabel+sambungan+konektor);
+  let ket, warna;
+  if(total<=15){ket='Sangat Baik (Normal)';warna='#10b981';}
+  else if(total<=25){ket='Standar / Layak (Normal FTTH)';warna='#3b82f6';}
+  else{ket='Buruk / Loss Tinggi (Perlu Pengecekan / Bending / Kotor)';warna='#ef4444';}
+  box.innerHTML =
+    '<h4 style="margin:0 0 10px;font-size:15px;color:var(--t1)">Hasil Analisis Simulasi Redaman:</h4>'+
+    '<div><b>Panjang Kabel:</b> '+(km*1000)+' Meter ('+km+' km)</div>'+
+    '<div>• Redaman murni kabel: <b>'+r2(kabel)+' dB</b></div>'+
+    '<div>• Redaman sambungan ('+sp+' titik): <b>'+r2(sambungan)+' dB</b></div>'+
+    '<div>• Redaman konektor ('+ko+' buah): <b>'+r2(konektor)+' dB</b></div>'+
+    '<hr style="border:0;border-top:1px solid var(--bd);margin:10px 0">'+
+    '<div style="font-size:16px;font-weight:700;color:var(--t1)">Total Estimasi Redaman: <span style="color:var(--red)">'+total+' dB</span></div>'+
+    '<div style="margin-top:8px;font-weight:600;color:'+warna+'">Status: '+ket+'</div>';
 }
 
 /* ===== LOGIN (sisi browser, bukan keamanan sungguhan) =====
