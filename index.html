@@ -217,13 +217,6 @@ body.locked #login{display:flex}
       <input type="file" id="tFile" accept=".csv,.xlsx,.xls">
       <button class="rbtn blue" onclick="importFile()">Upload &amp; Import Data</button>
     </div>
-
-    <div class="rcard">
-      <h3>Simpan Permanen</h3>
-      <p>Perubahan hanya tersimpan di <b>browser ini</b>. Agar tampil untuk semua pengguna: klik <b>Salin Data (JSON)</b>, lalu tempel menggantikan isi <code>let DATA = [ ... ];</code> di <code>index.html</code> dan push ke GitHub.</p>
-      <button class="rbtn" onclick="salinData()">Salin Data (JSON)</button>
-      <button class="rbtn gray" onclick="resetData()">Reset ke Data Bawaan</button>
-    </div>
   </div>
 </div>
 
@@ -415,16 +408,6 @@ function hapus(id){
   DATA.forEach(d=>{ if(d.parent===id) d.parent = null; });
   save(); rebuild();
 }
-function salinData(){
-  const txt = JSON.stringify(DATA,null,1);
-  navigator.clipboard.writeText(txt).then(()=>pesan('Data JSON berhasil disalin. Tempel ke index.html lalu push ke GitHub.',true))
-    .catch(()=>pesan('Gagal menyalin otomatis. Izinkan akses clipboard di browser.',false));
-}
-function resetData(){
-  if(!isAdmin() || !confirm('Hapus perubahan di browser ini dan kembali ke data bawaan index.html?')) return;
-  localStorage.removeItem('nms_data'); location.reload();
-}
-
 // Pindah tampilan
 function showView(v){
   const V = {dash:['viewDash','lnkDash','Monitoring Jaringan Akses & FTTH'],red:['viewRed','lnkRed','Test / Simulasi Redaman'],tambah:['viewTambah','lnkTambah','Kelola Perangkat']};
