@@ -66,9 +66,31 @@ body.open .sidebar{transform:none}
 .filter{flex-direction:column;align-items:stretch}
 }
 @media print{.sidebar,.nav,.filter,.chart,#map,.abtn{display:none!important}.main{margin:0!important;max-width:100%!important}}
+
+body.locked .sidebar,body.locked .main{display:none}
+#login{position:fixed;inset:0;z-index:2000;background:var(--bg);display:none;justify-content:center;align-items:center}
+body.locked #login{display:flex}
+.lcard{background:var(--card);padding:30px;border-radius:8px;border:1px solid var(--bd);border-top:4px solid var(--red);width:350px;max-width:92%}
+.lcard h3{color:var(--red);margin:0 0 16px;text-align:center}
+.lcard label{font-size:12px;color:var(--t2)}
+.lcard input{width:100%;padding:10px;margin:6px 0 12px;border:1px solid var(--bd);border-radius:4px;background:var(--card);color:var(--t1);font-family:inherit}
+.lcard button{width:100%;background:var(--red);color:#fff;padding:10px;border:0;border-radius:4px;font-weight:700;cursor:pointer;font-family:inherit}
+.lerr{color:#ef4444;font-size:13px;text-align:center;margin:0 0 10px;min-height:16px}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="login">
+  <div class="lcard">
+    <h3>Login Sistem Telkom</h3>
+    <p class="lerr" id="lerr"></p>
+    <label>Username</label>
+    <input id="lu" placeholder="Masukkan username" autocomplete="username">
+    <label>Password</label>
+    <input id="lp" type="password" placeholder="Masukkan password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Masuk</button>
+  </div>
+</div>
+
 <div class="overlay" id="ov" onclick="toggleSidebar()"></div>
 
 <div class="sidebar">
@@ -81,6 +103,9 @@ body.open .sidebar{transform:none}
     <a href="index.html" class="link active">Dashboard &amp; Topologi</a>
     <button class="link" onclick="window.print()">Cetak / Print Halaman</button>
     <button class="link" onclick="downloadCSV()">Download Rekap CSV</button>
+    <div class="lbl">Sistem</div>
+    <button class="link" style="color:#f87171" onclick="doLogout()">Keluar Sesi</button>
+    <div style="font-size:12px;color:#94a3b8;margin:12px 10px">Pengguna aktif:<br><b id="whoami" style="color:#cbd5e1"></b></div>
   </div>
 </div>
 
@@ -239,6 +264,40 @@ function downloadCSV(){
   a.download = 'rekap-perangkat.csv';
   a.click();
 }
+
+/* ===== LOGIN (sisi browser, bukan keamanan sungguhan) =====
+   Hash = SHA-256 dari "username:password". Untuk akun baru, jalankan di Console:
+   crypto.subtle.digest('SHA-256',new TextEncoder().encode('user:pass')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+*/
+const USERS = [
+  {u:'admin_telkom',role:'Admin',h:'6f8ed923d0af78e520d2d495243dee6c6ebbd84894c517dac115ba78239e0028'},
+  {u:'teknisi_lapangan',role:'User',h:'4695c50b84cccb76fc1f22bdfa977a1b5948acd8180e39dfe9452bc2a3e96530'}
+];
+async function sha(t){
+  const b = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function unlock(user){
+  document.body.classList.remove('locked');
+  document.getElementById('whoami').textContent = user.u+' ('+user.role+')';
+  setTimeout(()=>map.invalidateSize(),100);
+}
+async function doLogin(){
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value;
+  const h = await sha(u+':'+p);
+  const user = USERS.find(x=>x.u===u && x.h===h);
+  if(!user){document.getElementById('lerr').textContent='Username atau Password salah!';return;}
+  sessionStorage.setItem('auth',u);
+  document.getElementById('lp').value='';
+  unlock(user);
+}
+function doLogout(){
+  sessionStorage.removeItem('auth');
+  location.reload();
+}
+const saved = USERS.find(x=>x.u===sessionStorage.getItem('auth'));
+if(saved) unlock(saved);
 render();
 </script>
 </body>
