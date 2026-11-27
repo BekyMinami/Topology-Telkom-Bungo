@@ -20,7 +20,7 @@ body.collapsed .main{margin-left:0;max-width:100%}
 .sb-head img{height:38px;width:auto;object-fit:contain}
 .sb-head h2{margin:0;font-size:14px;font-weight:500;color:#cbd5e1}
 .sb-head h2 span{color:var(--red);font-weight:700}
-.sb-head small{font-size:10px;color:#94a3b8}
+.sb-head small{display:block;font-size:10px;color:#94a3b8;line-height:1.3}
 .sb-menu{padding:16px 12px;flex:1;display:flex;flex-direction:column;gap:6px}
 .lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 6px 10px}
 .link{display:block;padding:10px 12px;border-radius:6px;font-size:13px;font-weight:500;color:#d1d5db;text-decoration:none;background:rgba(255,255,255,.02);border:0;width:100%;text-align:left;cursor:pointer;font-family:inherit}
@@ -138,7 +138,8 @@ body.locked #login{display:flex}
       <button class="btn" onclick="toggleSidebar()">☰</button>
       <h3 id="pageTitle">Monitoring Jaringan Akses &amp; FTTH</h3>
     </div>
-    <button class="btn" id="themeBtn" onclick="toggleTheme()">Mode Gelap</button>
+    <div><button class="btn" id="btnAcak" onclick="acakStatus()">🎲 Acak Status</button>
+      <button class="btn" id="themeBtn" onclick="toggleTheme()">Mode Gelap</button></div>
   </div>
 
   <div id="viewDash">
@@ -170,7 +171,7 @@ body.locked #login{display:flex}
       <tbody id="tb"></tbody>
     </table>
   </div>
-  <p class="note">Data bersifat snapshot statis (tanpa ping real-time).</p>
+  <p class="note" id="note"></p>
   </div>
 
   <div id="viewRed" style="display:none">
@@ -225,24 +226,26 @@ body.locked #login{display:flex}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data_dummy.js" onerror="void 0"></script>
+<script src="data_dummy_2.js" onerror="void 0"></script>
 <script>
 /* ============================================================
-   DATA PERANGKAT (CONTOH). Ganti dengan hasil export_json.php
+   DATA PERANGKAT. Isi array DATA dengan data asli (hasil export_json.php),
+   atau import lewat menu Tambah / Import Data.
+   Data dummy sementara dimuat dari file terpisah: data_dummy.js / data_dummy_2.js
    status: 'Normal' / 'Gangguan' (hanya dipakai untuk perangkat ber-IP;
    perangkat pasif mengikuti status parent-nya).
    ============================================================ */
-let DATA = [
-  {id:1,nama:"Router Core Bungo",jenis:"Router",ip:"10.10.0.1",port:"24",parent:null,lat:-1.4862,lng:102.1085,status:"Normal"},
-  {id:2,nama:"OLT Muara Bungo",jenis:"OLT",ip:"10.10.1.1",port:"16",parent:1,lat:-1.4900,lng:102.1120,status:"Normal"},
-  {id:3,nama:"OLT Rimbo Tengah",jenis:"OLT",ip:"10.10.1.2",port:"16",parent:1,lat:-1.4700,lng:102.0900,status:"Gangguan"},
-  {id:4,nama:"ODC Pasar",jenis:"ODC",ip:"",port:"144",parent:2,lat:-1.4930,lng:102.1160,status:""},
-  {id:5,nama:"ODC Rimbo",jenis:"ODC",ip:"",port:"144",parent:3,lat:-1.4650,lng:102.0850,status:""},
-  {id:6,nama:"ODP Pasar 01",jenis:"ODP",ip:"",port:"8",parent:4,lat:-1.4950,lng:102.1180,status:""},
-  {id:7,nama:"ODP Pasar 02",jenis:"ODP",ip:"",port:"8",parent:4,lat:-1.4960,lng:102.1140,status:""},
-  {id:8,nama:"ODP Rimbo 01",jenis:"ODP",ip:"",port:"8",parent:5,lat:-1.4630,lng:102.0830,status:""}
-];
+let DATA = [];
 
-try{const sv=localStorage.getItem("nms_data"); if(sv) DATA=JSON.parse(sv);}catch(e){}
+// Prioritas data: localStorage (hasil tambah/import) > data_dummy.js > kosong
+let SIMULASI_STATUS = false; // true hanya jika memakai data dummy: status ber-IP diacak
+const PILIH_DUMMY = 2; // 1 = data_dummy.js, 2 = data_dummy_2.js
+const d1 = typeof DATA_DUMMY!=='undefined' ? DATA_DUMMY : null;
+const d2 = typeof DATA_DUMMY_2!=='undefined' ? DATA_DUMMY_2 : null;
+const dummySet = PILIH_DUMMY===2 ? (d2||d1) : (d1||d2);
+if(dummySet){ DATA = dummySet; SIMULASI_STATUS = true; }
+try{const sv=localStorage.getItem("nms_data"); if(sv){ DATA=JSON.parse(sv); SIMULASI_STATUS = false; }}catch(e){}
 const WARNA = {Router:'#3b82f6',Switch:'#06b6d4','Access Point':'#ec4899',OLT:'#8b5cf6',ODC:'#f59e0b',ODP:'#b91010'};
 let byId = {};
 
@@ -285,6 +288,7 @@ function toggleSidebar(){
 const map = L.map('map').setView([-1.4862,102.1085],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 let markers = {};
+let fitted = false; // pusatkan peta ke data sekali saat data dimuat
 const layer = L.layerGroup().addTo(map);
 function drawMap(){
   layer.clearLayers(); markers = {};
@@ -307,6 +311,10 @@ function drawMap(){
       'Status: <b style="color:'+(st==='Normal'?'#10b981':'#ef4444')+'">'+st+'</b>'
     );
   });
+  if(!fitted && DATA.length){
+    const la = DATA.reduce((a,d)=>a+d.lat,0)/DATA.length, lo = DATA.reduce((a,d)=>a+d.lng,0)/DATA.length;
+    map.setView([la,lo],13); fitted = true;
+  }
 }
 
 let chartObj;
@@ -400,7 +408,7 @@ function importFile(){
         out.push({id:out.length+1,nama:String(r[0]).trim(),jenis:String(r[1]).trim(),ip:String(r[2]).trim(),port:String(r[3]).trim(),parent:parseInt(r[4])||null,lat,lng,status:String(r[2]).trim()?'Normal':''});
       });
       out.forEach(d=>{ if(d.parent>out.length || d.parent===d.id) d.parent = null; });
-      DATA = out; save(); rebuild();
+      DATA = out; fitted = false; save(); rebuild();
       pesan('Berhasil import '+out.length+' data perangkat!'+(gagal?' (Gagal: '+gagal+')':''),true);
     }catch(err){ pesan('Gagal membaca file. Pastikan formatnya benar.',false); }
   };
@@ -412,6 +420,18 @@ function hapus(id){
   DATA.forEach(d=>{ if(d.parent===id) d.parent = null; });
   save(); rebuild();
 }
+// Simulasi status acak: ~25% perangkat ber-IP gangguan, minimal 2
+function acakStatus(){
+  const ips = DATA.filter(d=>d.ip);
+  ips.forEach(d=>{ d.status = Math.random()<0.25 ? 'Gangguan' : 'Normal'; });
+  if(ips.length>3){
+    while(ips.filter(d=>d.status==='Gangguan').length<2){
+      ips[Math.floor(Math.random()*ips.length)].status = 'Gangguan';
+    }
+  }
+  rebuild();
+}
+
 // Pindah tampilan
 function showView(v){
   const V = {dash:['viewDash','lnkDash','Monitoring Jaringan Akses & FTTH'],red:['viewRed','lnkRed','Test / Simulasi Redaman'],tambah:['viewTambah','lnkTambah','Kelola Perangkat']};
@@ -492,8 +512,12 @@ function doLogout(){
   location.reload();
 }
 const saved = USERS.find(x=>x.u===sessionStorage.getItem('auth'));
+document.getElementById('btnAcak').style.display = SIMULASI_STATUS?'':'none';
+document.getElementById('note').textContent = SIMULASI_STATUS
+  ? 'Status perangkat disimulasikan secara acak (bukan hasil ping real-time). Klik "Acak Status" untuk mengacak ulang.'
+  : 'Data bersifat snapshot statis (tanpa ping real-time).';
 if(saved) unlock(saved);
-rebuild();
+SIMULASI_STATUS ? acakStatus() : rebuild();
 </script>
 </body>
 </html>
