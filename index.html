@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NMS Portal - PT Telkom Indonesia Wilayah Bungo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--red:#cc0000;--bg:#f3f4f6;--card:#fff;--t1:#1f2937;--t2:#4b5563;--t3:#9ca3af;--bd:#e5e7eb;--th:#f9fafb}
+[data-theme=dark]{--red:#ef4444;--bg:#0b0f19;--card:#131d31;--t1:#f3f4f6;--t2:#9ca3af;--t3:#6b7280;--bd:#1e293b;--th:#17233f}
+*{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--t1);margin:0;display:flex;min-height:100vh}
+.sidebar{width:265px;background:rgba(17,24,39,.95);color:#fff;position:fixed;inset:0 auto 0 0;z-index:1100;display:flex;flex-direction:column;transition:transform .25s}
+body.collapsed .sidebar{transform:translateX(-100%)}
+body.collapsed .main{margin-left:0;max-width:100%}
+.sb-head{padding:20px;background:rgba(11,15,25,.9);border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-head h2{margin:0;font-size:14px;font-weight:500;color:#cbd5e1}
+.sb-head h2 span{color:var(--red);font-weight:700}
+.sb-head small{font-size:10px;color:#94a3b8}
+.sb-menu{padding:16px 12px;flex:1;display:flex;flex-direction:column;gap:6px}
+.lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 6px 10px}
+.link{display:block;padding:10px 12px;border-radius:6px;font-size:13px;font-weight:500;color:#d1d5db;text-decoration:none;background:rgba(255,255,255,.02);border:0;width:100%;text-align:left;cursor:pointer;font-family:inherit}
+.link:hover{background:rgba(255,255,255,.08);color:#fff}
+.link.active{background:var(--red);color:#fff;font-weight:600}
+.main{margin-left:265px;flex:1;padding:24px 32px;max-width:calc(100% - 265px);width:100%;transition:margin-left .25s}
+.nav{background:var(--card);padding:14px 22px;border-radius:8px;border:1px solid var(--bd);border-left:4px solid var(--red);display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.nav h3{margin:0;font-size:16px}
+.nav>div{display:flex;align-items:center;gap:12px}
+.btn{background:transparent;border:1px solid var(--bd);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--t1);font-family:inherit}
+.btn:hover{background:var(--bd)}
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);z-index:1050;display:none}
+.overlay.on{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat,.chart,.filter{background:var(--card);border:1px solid var(--bd);border-radius:8px}
+.stat{padding:18px 20px}
+.stat small{display:block;color:var(--t3);font-size:11px;font-weight:600;text-transform:uppercase;margin-bottom:6px}
+.stat h3{margin:0;font-size:22px}
+.stat span{font-size:12px;font-weight:500;color:var(--t2)}
+.grid{display:grid;grid-template-columns:2.8fr 1fr;gap:16px;margin-bottom:24px}
+#map{height:400px;border-radius:8px;border:1px solid var(--bd)}
+.chart{padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px}
+.chart h4{margin:0 0 12px;font-size:13px}
+.filter{padding:14px 18px;margin-bottom:16px;display:flex;gap:12px;align-items:center}
+.filter strong{font-size:11px;color:var(--t3);text-transform:uppercase}
+.filter input,.filter select{padding:7px 12px;border:1px solid var(--bd);border-radius:6px;font-size:13px;color:var(--t1);background:var(--card);outline:0;font-family:inherit}
+.filter input{flex:1}
+.tbl{background:var(--card);border-radius:8px;border:1px solid var(--bd);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:650px}
+th,td{padding:12px 16px;border-bottom:1px solid var(--bd);text-align:left}
+th{background:var(--th);color:var(--t2);font-size:11px;text-transform:uppercase}
+tr:hover td{background:var(--th)}
+.badge{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase}
+.ok{background:#d1fae5;color:#065f46}
+.down{background:#fee2e2;color:#991b1b}
+.abtn{padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;cursor:pointer;font-family:inherit}
+.note{font-size:11px;color:var(--t3);margin:12px 0 0;text-align:center}
+@media(max-width:768px){
+.sidebar{transform:translateX(-100%)}
+body.open .sidebar{transform:none}
+.main{margin-left:0!important;max-width:100%!important;padding:12px 16px!important}
+.cards{grid-template-columns:repeat(2,1fr);gap:10px}
+.grid{grid-template-columns:1fr}
+#map{height:280px}.chart{height:300px}
+.filter{flex-direction:column;align-items:stretch}
+}
+@media print{.sidebar,.nav,.filter,.chart,#map,.abtn{display:none!important}.main{margin:0!important;max-width:100%!important}}
+</style>
+</head>
+<body>
+<div class="overlay" id="ov" onclick="toggleSidebar()"></div>
+
+<div class="sidebar">
+  <div class="sb-head">
+    <h2>TELKOM <span>NMS</span></h2>
+    <small>Witel Jambi / Bungo</small>
+  </div>
+  <div class="sb-menu">
+    <div class="lbl">Navigasi Utama</div>
+    <a href="index.html" class="link active">Dashboard &amp; Topologi</a>
+    <button class="link" onclick="window.print()">Cetak / Print Halaman</button>
+    <button class="link" onclick="downloadCSV()">Download Rekap CSV</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="nav">
+    <div>
+      <button class="btn" onclick="toggleSidebar()">☰</button>
+      <h3>Monitoring Jaringan Akses &amp; FTTH</h3>
+    </div>
+    <button class="btn" id="themeBtn" onclick="toggleTheme()">Mode Gelap</button>
+  </div>
+
+  <div class="cards">
+    <div class="stat"><small>Total Infrastruktur</small><h3 id="sNode"></h3></div>
+    <div class="stat"><small>Total Titik Pasif</small><h3 id="sPasif"></h3></div>
+    <div class="stat"><small>Status Utama (OLT)</small><h3 id="sOlt"></h3></div>
+    <div class="stat"><small>ODP Terdampak Gangguan</small><h3 id="sDown"></h3></div>
+  </div>
+
+  <div class="grid">
+    <div id="map"></div>
+    <div class="chart"><h4>Komposisi Perangkat</h4><div style="width:100%;max-width:180px"><canvas id="chart"></canvas></div></div>
+  </div>
+
+  <div class="filter">
+    <strong>Pencarian:</strong>
+    <input id="q" oninput="render()" placeholder="Cari nama perangkat atau IP...">
+    <select id="fj" onchange="render()">
+      <option value="">-- Semua Jenis --</option>
+      <option>Router</option><option>Switch</option><option>Access Point</option>
+      <option>OLT</option><option>ODC</option><option>ODP</option>
+    </select>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>No</th><th>Nama Perangkat / Node</th><th>Jenis</th><th>IP Address</th><th>Kapasitas Port</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+  <p class="note">Data bersifat snapshot statis (tanpa ping real-time).</p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============================================================
+   DATA PERANGKAT (CONTOH). Ganti dengan hasil export_json.php
+   status: 'Normal' / 'Gangguan' (hanya dipakai untuk perangkat ber-IP;
+   perangkat pasif mengikuti status parent-nya).
+   ============================================================ */
+const DATA = [
+  {id:1,nama:"Router Core Bungo",jenis:"Router",ip:"10.10.0.1",port:"24",parent:null,lat:-1.4862,lng:102.1085,status:"Normal"},
+  {id:2,nama:"OLT Muara Bungo",jenis:"OLT",ip:"10.10.1.1",port:"16",parent:1,lat:-1.4900,lng:102.1120,status:"Normal"},
+  {id:3,nama:"OLT Rimbo Tengah",jenis:"OLT",ip:"10.10.1.2",port:"16",parent:1,lat:-1.4700,lng:102.0900,status:"Gangguan"},
+  {id:4,nama:"ODC Pasar",jenis:"ODC",ip:"",port:"144",parent:2,lat:-1.4930,lng:102.1160,status:""},
+  {id:5,nama:"ODC Rimbo",jenis:"ODC",ip:"",port:"144",parent:3,lat:-1.4650,lng:102.0850,status:""},
+  {id:6,nama:"ODP Pasar 01",jenis:"ODP",ip:"",port:"8",parent:4,lat:-1.4950,lng:102.1180,status:""},
+  {id:7,nama:"ODP Pasar 02",jenis:"ODP",ip:"",port:"8",parent:4,lat:-1.4960,lng:102.1140,status:""},
+  {id:8,nama:"ODP Rimbo 01",jenis:"ODP",ip:"",port:"8",parent:5,lat:-1.4630,lng:102.0830,status:""}
+];
+
+const WARNA = {Router:'#3b82f6',Switch:'#06b6d4','Access Point':'#ec4899',OLT:'#8b5cf6',ODC:'#f59e0b',ODP:'#b91010'};
+const byId = Object.fromEntries(DATA.map(d=>[d.id,d]));
+
+// Status rekursif: ber-IP pakai status sendiri, pasif ikut parent
+function getStatus(d){
+  if(d.ip) return d.status || 'Normal';
+  if(d.parent && byId[d.parent]) return getStatus(byId[d.parent]);
+  return 'Normal';
+}
+const count = j => DATA.filter(d=>d.jenis===j).length;
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Statistik
+const odpDown = DATA.filter(d=>d.jenis==='ODP'&&getStatus(d)==='Gangguan').length;
+document.getElementById('sNode').innerHTML = DATA.length+' <span>Node</span>';
+document.getElementById('sPasif').innerHTML = (count('ODC')+count('ODP'))+' <span>ODC / ODP</span>';
+document.getElementById('sOlt').innerHTML = count('OLT')+' <span style="color:#10b981">Aktif</span>';
+document.getElementById('sDown').style.color = odpDown>0?'#ef4444':'#10b981';
+document.getElementById('sDown').innerHTML = odpDown+' <span>ODP</span>';
+
+// Tema & sidebar
+if(localStorage.getItem('theme')==='dark'){
+  document.documentElement.setAttribute('data-theme','dark');
+  document.getElementById('themeBtn').textContent='Mode Terang';
+}
+function toggleTheme(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  localStorage.setItem('theme',dark?'light':'dark');
+  document.getElementById('themeBtn').textContent = dark?'Mode Gelap':'Mode Terang';
+}
+function toggleSidebar(){
+  if(innerWidth<=768){document.body.classList.toggle('open');document.getElementById('ov').classList.toggle('on');}
+  else document.body.classList.toggle('collapsed');
+}
+
+// Peta
+const map = L.map('map').setView([-1.4862,102.1085],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+const markers = {};
+DATA.forEach(d=>{
+  if(d.parent && byId[d.parent]){
+    const p = byId[d.parent], st = getStatus(d);
+    L.polyline([[d.lat,d.lng],[p.lat,p.lng]],{color:st==='Normal'?'#3b82f6':'#ef4444',weight:3.5,opacity:.9,dashArray:'5, 5'})
+      .addTo(map).bindPopup('<b>Status Jalur: '+st+'</b>');
+  }
+});
+DATA.forEach(d=>{
+  const st = getStatus(d);
+  markers[d.id] = L.circleMarker([d.lat,d.lng],{
+    radius:d.jenis==='ODP'?6:9,
+    fillColor: st==='Gangguan'?'#ef4444':(WARNA[d.jenis]||'#6b7280'),
+    color:'#fff',weight:2,fillOpacity:1
+  }).addTo(map).bindPopup(
+    '<b>'+esc(d.nama)+'</b><br>Jenis: <b>'+esc(d.jenis)+'</b><br>'+
+    (d.ip?'IP: '+esc(d.ip)+'<br>':'')+
+    'Status: <b style="color:'+(st==='Normal'?'#10b981':'#ef4444')+'">'+st+'</b>'
+  );
+});
+
+// Chart
+new Chart(document.getElementById('chart'),{
+  type:'doughnut',
+  data:{labels:['Router','OLT','ODC','ODP'],datasets:[{data:[count('Router'),count('OLT'),count('ODC'),count('ODP')],backgroundColor:['#3b82f6','#8b5cf6','#f59e0b','#b91010'],borderWidth:0}]},
+  options:{responsive:true,cutout:'75%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}
+});
+
+// Tabel + filter
+function render(){
+  const q = document.getElementById('q').value.toLowerCase();
+  const fj = document.getElementById('fj').value;
+  let no = 1, html = '';
+  DATA.forEach(d=>{
+    if(fj && d.jenis!==fj) return;
+    if(q && !(d.nama.toLowerCase().includes(q) || (d.ip||'').toLowerCase().includes(q))) return;
+    const st = getStatus(d);
+    html += '<tr><td>'+(no++)+'</td><td><b>'+esc(d.nama)+'</b></td><td>'+esc(d.jenis)+'</td><td>'+
+      (d.ip?esc(d.ip):'<i style="color:var(--t3)">- (Pasif)</i>')+'</td><td>'+(d.port?esc(d.port):'-')+'</td><td>'+
+      '<span class="badge '+(st==='Normal'?'ok':'down')+'">'+st+'</span></td>'+
+      '<td><button class="abtn" onclick="fokus('+d.id+')">Lihat di Peta</button></td></tr>';
+  });
+  document.getElementById('tb').innerHTML = html || '<tr><td colspan="7" style="text-align:center">Tidak ada data</td></tr>';
+}
+function fokus(id){
+  const d = byId[id];
+  document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+  map.setView([d.lat,d.lng],16);
+  markers[id].openPopup();
+}
+function downloadCSV(){
+  let csv = 'No,Nama,Jenis,IP,Kapasitas Port,Status\n';
+  DATA.forEach((d,i)=>{csv += [i+1,'"'+d.nama+'"',d.jenis,d.ip,d.port,getStatus(d)].join(',')+'\n';});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'rekap-perangkat.csv';
+  a.click();
+}
+render();
+</script>
+</body>
+</html>
