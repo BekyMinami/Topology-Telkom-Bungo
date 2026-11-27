@@ -218,7 +218,7 @@ body.locked #login{display:flex}
 
     <div class="rcard">
       <h3>Import Data Massal (CSV / Excel)</h3>
-      <p>Upload file <b>.csv, .xlsx, atau .xls</b>. Baris pertama = header. Urutan kolom: <b>nama, jenis, ip, kapasitas_port, parent_id, latitude, longitude</b>. <code>parent_id</code> diisi nomor urut baris data induk (baris data pertama = 1).</p>
+      <p>Upload file <b>.csv, .xlsx, atau .xls</b>. Baris pertama = header. Urutan kolom: <b>nama, jenis, ip, kapasitas_port, parent_id, latitude, longitude</b>, dan kolom ke-8 <b>status</b> (opsional: <code>Normal</code> atau <code>Gangguan</code>, hanya dibaca untuk perangkat ber-IP). <code>parent_id</code> diisi nomor urut baris data induk (baris data pertama = 1).</p>
       <input type="file" id="tFile" accept=".csv,.xlsx,.xls">
       <button class="rbtn blue" onclick="importFile()">Upload &amp; Import Data</button>
     </div>
@@ -405,7 +405,7 @@ function importFile(){
         if(!r.some(c=>String(c).trim()!=='')) return;
         const lat = parseFloat(r[5]), lng = parseFloat(r[6]);
         if(r.length<7 || !String(r[0]).trim() || isNaN(lat) || isNaN(lng)){gagal++;return;}
-        out.push({id:out.length+1,nama:String(r[0]).trim(),jenis:String(r[1]).trim(),ip:String(r[2]).trim(),port:String(r[3]).trim(),parent:parseInt(r[4])||null,lat,lng,status:String(r[2]).trim()?'Normal':''});
+        out.push({id:out.length+1,nama:String(r[0]).trim(),jenis:String(r[1]).trim(),ip:String(r[2]).trim(),port:String(r[3]).trim(),parent:parseInt(r[4])||null,lat,lng,status:String(r[2]).trim()?(/gangguan|down|off|rusak|loss/i.test(String(r[7]||''))?'Gangguan':'Normal'):''});
       });
       out.forEach(d=>{ if(d.parent>out.length || d.parent===d.id) d.parent = null; });
       DATA = out; fitted = false; save(); rebuild();
